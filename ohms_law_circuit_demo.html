@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive Ohm's Law Circuit Demo</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --ink: #17324d;
+      --muted: #5d748c;
+      --wire: #294866;
+      --wire-soft: #87a3bf;
+      --accent: #2f7cf6;
+      --accent-2: #f7b500;
+      --danger: #ef6a5b;
+      --ok: #2ca56d;
+      --shadow: 0 12px 30px rgba(16, 35, 56, 0.12);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: radial-gradient(circle at top, #f8fbff 0%, var(--bg) 65%);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(1120px, 100%);
+      display: grid;
+      grid-template-columns: 1.45fr 0.95fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(31, 60, 93, 0.08);
+    }
+
+    .sim-panel {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .side-panel {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    h1 {
+      font-size: clamp(24px, 3vw, 34px);
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.45;
+      margin-top: 6px;
+    }
+
+    .svg-wrap {
+      position: relative;
+      background: linear-gradient(180deg, #f8fbff, #eef4fb);
+      border: 1px solid rgba(41, 72, 102, 0.08);
+      border-radius: 16px;
+      overflow: hidden;
+      min-height: 560px;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .formula-box,
+    .control-box,
+    .stats-box,
+    .note-box {
+      border: 1px solid rgba(31, 60, 93, 0.08);
+      border-radius: 16px;
+      padding: 16px;
+      background: linear-gradient(180deg, #ffffff, #fbfdff);
+    }
+
+    .box-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .formula {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .formula-sub {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .control {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .control:last-child {
+      margin-bottom: 0;
+    }
+
+    .control-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 15px;
+    }
+
+    .control-head strong {
+      font-size: 16px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .mini {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 14px;
+      background: #f6faff;
+      border: 1px solid rgba(47, 124, 246, 0.1);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 8px 16px rgba(47, 124, 246, 0.22);
+    }
+
+    button.secondary {
+      background: #eaf1fb;
+      color: var(--ink);
+      box-shadow: none;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .swatch.yellow { background: var(--accent-2); }
+    .swatch.red { background: var(--danger); }
+    .swatch.green { background: var(--ok); }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 920px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .svg-wrap {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="app">
+      <section class="panel sim-panel">
+        <div>
+          <h1>Interactive Ohm’s Law Circuit</h1>
+          <div class="subtitle">
+            Adjust the battery voltage and resistor value. The current dots speed up or slow down based on the current, and the resistor glows more strongly as power increases.
+          </div>
+        </div>
+
+        <div class="svg-wrap">
+          <svg viewBox="0 0 860 620" aria-label="DC circuit with battery, resistor, switch, and animated current flow">
+            <defs>
+              <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="6" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <linearGradient id="batteryGrad" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#f9fbff" />
+                <stop offset="100%" stop-color="#d9e7f7" />
+              </linearGradient>
+              <linearGradient id="resGlowGrad" x1="0" x2="1" y1="0" y2="0">
+                <stop offset="0%" stop-color="#ffd86f" />
+                <stop offset="100%" stop-color="#f09543" />
+              </linearGradient>
+            </defs>
+
+            <rect x="0" y="0" width="860" height="620" fill="transparent" />
+
+            <g id="currentTrail"></g>
+
+            <g id="wireShadow" opacity="0.08">
+              <path d="M170 150 H690 V450 H170 Z" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+            </g>
+
+            <g id="wireBase">
+              <path id="loopPath" d="M170 150 H690 V450 H170 Z" fill="none" stroke="#294866" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+            </g>
+
+            <g id="directionArrow" transform="translate(0,0)">
+              <path d="M0 0 L24 0" stroke="#2f7cf6" stroke-width="4" stroke-linecap="round" />
+              <path d="M18 -6 L28 0 L18 6" fill="none" stroke="#2f7cf6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+            </g>
+
+            <g id="labels">
+              <text x="85" y="120" font-size="18" fill="#5d748c" font-weight="700">Conventional current</text>
+              <text x="665" y="110" font-size="18" fill="#5d748c" font-weight="700">Resistor</text>
+              <text x="95" y="520" font-size="18" fill="#5d748c" font-weight="700">Battery</text>
+            </g>
+
+            <g id="battery" transform="translate(130, 360)">
+              <rect x="0" y="0" width="120" height="130" rx="20" fill="url(#batteryGrad)" stroke="#a7bfd8" stroke-width="2" />
+              <rect x="18" y="20" width="84" height="90" rx="14" fill="#edf4fc" stroke="#c6d8eb" stroke-width="2" />
+              <line x1="45" y1="48" x2="45" y2="82" stroke="#ef6a5b" stroke-width="7" stroke-linecap="round" />
+              <line x1="29" y1="65" x2="61" y2="65" stroke="#ef6a5b" stroke-width="7" stroke-linecap="round" />
+              <line x1="80" y1="50" x2="80" y2="80" stroke="#294866" stroke-width="7" stroke-linecap="round" />
+              <text id="batteryLabel" x="60" y="118" text-anchor="middle" font-size="22" font-weight="700" fill="#17324d">9.0 V</text>
+              <circle cx="60" cy="-6" r="7" fill="#294866" />
+              <circle cx="60" cy="136" r="7" fill="#294866" />
+            </g>
+
+            <g id="resistorGroup" transform="translate(525, 116)">
+              <rect id="resistorGlow" x="-18" y="-30" width="196" height="70" rx="26" fill="url(#resGlowGrad)" opacity="0.15" filter="url(#softGlow)" />
+              <path d="M0 5 L20 -20 L45 30 L70 -20 L95 30 L120 -20 L145 30 L160 5"
+                    fill="none" stroke="#d86c39" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M0 5 L20 -20 L45 30 L70 -20 L95 30 L120 -20 L145 30 L160 5"
+                    fill="none" stroke="#7c3e20" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4" />
+              <text id="resistorLabel" x="80" y="78" text-anchor="middle" font-size="22" font-weight="700" fill="#17324d">20 Ω</text>
+            </g>
+
+            <g id="meterPanel" transform="translate(600, 360)">
+              <rect x="0" y="0" width="180" height="126" rx="18" fill="#ffffff" stroke="#d6e3f1" stroke-width="2" />
+              <text x="18" y="28" font-size="16" fill="#5d748c" font-weight="700">Live values</text>
+              <text id="meterCurrent" x="18" y="58" font-size="22" fill="#17324d" font-weight="700">I = 0.45 A</text>
+              <text id="meterPower" x="18" y="88" font-size="22" fill="#17324d" font-weight="700">P = 4.05 W</text>
+              <text id="meterState" x="18" y="113" font-size="14" fill="#2ca56d" font-weight="700">Circuit closed</text>
+            </g>
+
+            <g id="switchGroup" transform="translate(344, 150)">
+              <circle cx="0" cy="0" r="8" fill="#294866" />
+              <circle cx="58" cy="0" r="8" fill="#294866" />
+              <line id="switchArm" x1="0" y1="0" x2="51" y2="0" stroke="#2f7cf6" stroke-width="7" stroke-linecap="round" />
+              <text x="-2" y="-24" font-size="18" fill="#5d748c" font-weight="700">Switch</text>
+            </g>
+
+            <g id="electronDots"></g>
+          </svg>
+        </div>
+      </section>
+
+      <aside class="panel side-panel">
+        <div class="formula-box">
+          <div class="box-title">Core relationship</div>
+          <div class="formula">I = V / R</div>
+          <div class="formula-sub">
+            Current increases when voltage increases, and current decreases when resistance increases.
+          </div>
+        </div>
+
+        <div class="control-box">
+          <div class="box-title">Controls</div>
+
+          <div class="control">
+            <div class="control-head">
+              <strong>Voltage</strong>
+              <span id="voltageReadout">9.0 V</span>
+            </div>
+            <input id="voltage" type="range" min="1" max="24" step="0.5" value="9" />
+            <div class="mini">Battery potential difference across the circuit.</div>
+          </div>
+
+          <div class="control">
+            <div class="control-head">
+              <strong>Resistance</strong>
+              <span id="resistanceReadout">20.0 Ω</span>
+            </div>
+            <input id="resistance" type="range" min="1" max="100" step="1" value="20" />
+            <div class="mini">Higher resistance opposes the flow of current more strongly.</div>
+          </div>
+
+          <div class="button-row">
+            <button id="toggleSwitch" type="button">Open switch</button>
+            <button id="resetBtn" type="button" class="secondary">Reset</button>
+          </div>
+        </div>
+
+        <div class="stats-box">
+          <div class="box-title">Calculated values</div>
+          <div class="stats-grid">
+            <div class="stat">
+              <div class="stat-label">Current</div>
+              <div id="currentValue" class="stat-value">0.45 A</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Power</div>
+              <div id="powerValue" class="stat-value">4.05 W</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Voltage</div>
+              <div id="voltageValue" class="stat-value">9.0 V</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Resistance</div>
+              <div id="resistanceValue" class="stat-value">20 Ω</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note-box">
+          <div class="box-title">Teaching notes</div>
+          <div class="legend">
+            <span class="legend-item"><span class="swatch"></span>Current dots represent charge flow visually</span>
+            <span class="legend-item"><span class="swatch yellow"></span>Resistor glow scales with power</span>
+            <span class="legend-item"><span class="swatch green"></span>Closed switch completes the loop</span>
+            <span class="legend-item"><span class="swatch red"></span>Open switch stops current</span>
+          </div>
+          <p class="footer-note">
+            This is a simplified classroom model. It is designed to visualize Ohm’s law clearly rather than reproduce every detail of real circuit behavior.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const voltageSlider = document.getElementById('voltage');
+    const resistanceSlider = document.getElementById('resistance');
+    const toggleSwitchBtn = document.getElementById('toggleSwitch');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const voltageReadout = document.getElementById('voltageReadout');
+    const resistanceReadout = document.getElementById('resistanceReadout');
+    const voltageValue = document.getElementById('voltageValue');
+    const resistanceValue = document.getElementById('resistanceValue');
+    const currentValue = document.getElementById('currentValue');
+    const powerValue = document.getElementById('powerValue');
+
+    const batteryLabel = document.getElementById('batteryLabel');
+    const resistorLabel = document.getElementById('resistorLabel');
+    const meterCurrent = document.getElementById('meterCurrent');
+    const meterPower = document.getElementById('meterPower');
+    const meterState = document.getElementById('meterState');
+    const resistorGlow = document.getElementById('resistorGlow');
+    const loopPath = document.getElementById('loopPath');
+    const electronDots = document.getElementById('electronDots');
+    const currentTrail = document.getElementById('currentTrail');
+    const switchArm = document.getElementById('switchArm');
+    const directionArrow = document.getElementById('directionArrow');
+
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const pathLength = loopPath.getTotalLength();
+    const dotCount = 18;
+    const trailCount = 22;
+    const dots = [];
+    const trails = [];
+
+    let isClosed = true;
+    let phase = 0;
+    let lastTime = performance.now();
+
+    function createDot(radius, opacity, color) {
+      const c = document.createElementNS(SVG_NS, 'circle');
+      c.setAttribute('r', radius);
+      c.setAttribute('fill', color);
+      c.setAttribute('opacity', opacity);
+      electronDots.appendChild(c);
+      return c;
+    }
+
+    function createTrail() {
+      const c = document.createElementNS(SVG_NS, 'circle');
+      c.setAttribute('r', 3.2);
+      c.setAttribute('fill', '#b7d3fb');
+      c.setAttribute('opacity', '0.25');
+      currentTrail.appendChild(c);
+      return c;
+    }
+
+    for (let i = 0; i < dotCount; i++) {
+      dots.push(createDot(6, 0.95, '#2f7cf6'));
+    }
+
+    for (let i = 0; i < trailCount; i++) {
+      trails.push(createTrail());
+    }
+
+    function fmt(num, digits = 2) {
+      return Number(num).toFixed(digits);
+    }
+
+    function getState() {
+      const V = parseFloat(voltageSlider.value);
+      const R = parseFloat(resistanceSlider.value);
+      const I = isClosed ? V / R : 0;
+      const P = isClosed ? V * I : 0;
+      return { V, R, I, P };
+    }
+
+    function updateUI() {
+      const { V, R, I, P } = getState();
+      const currentDigits = I >= 10 ? 1 : 2;
+      const powerDigits = P >= 100 ? 0 : 2;
+
+      voltageReadout.textContent = `${fmt(V, 1)} V`;
+      resistanceReadout.textContent = `${fmt(R, 1)} Ω`;
+
+      voltageValue.textContent = `${fmt(V, 1)} V`;
+      resistanceValue.textContent = `${fmt(R, 0)} Ω`;
+      currentValue.textContent = `${fmt(I, currentDigits)} A`;
+      powerValue.textContent = `${fmt(P, powerDigits)} W`;
+
+      batteryLabel.textContent = `${fmt(V, 1)} V`;
+      resistorLabel.textContent = `${fmt(R, 0)} Ω`;
+      meterCurrent.textContent = `I = ${fmt(I, currentDigits)} A`;
+      meterPower.textContent = `P = ${fmt(P, powerDigits)} W`;
+      meterState.textContent = isClosed ? 'Circuit closed' : 'Circuit open';
+      meterState.setAttribute('fill', isClosed ? '#2ca56d' : '#ef6a5b');
+
+      const glowOpacity = isClosed ? Math.min(0.15 + P / 40, 0.95) : 0.06;
+      resistorGlow.setAttribute('opacity', glowOpacity.toFixed(3));
+      resistorGlow.setAttribute('transform', `scale(${1 + Math.min(P / 180, 0.22)}, 1)`);
+
+      switchArm.setAttribute('x2', isClosed ? '51' : '45');
+      switchArm.setAttribute('y2', isClosed ? '0' : '-26');
+      switchArm.setAttribute('stroke', isClosed ? '#2f7cf6' : '#ef6a5b');
+
+      toggleSwitchBtn.textContent = isClosed ? 'Open switch' : 'Close switch';
+    }
+
+    function placeArrow() {
+      const p = loopPath.getPointAtLength(90);
+      directionArrow.setAttribute('transform', `translate(${p.x - 12}, ${p.y - 30})`);
+    }
+
+    function updateDots(dt) {
+      const { I } = getState();
+      const normalized = Math.min(I / 2.5, 1);
+      const speed = isClosed ? 40 + normalized * 360 : 0;
+      phase = (phase + dt * speed) % pathLength;
+
+      for (let i = 0; i < trails.length; i++) {
+        const offset = (i / trails.length) * pathLength;
+        const distance = (phase - offset + pathLength) % pathLength;
+        const point = loopPath.getPointAtLength(distance);
+        trails[i].setAttribute('cx', point.x);
+        trails[i].setAttribute('cy', point.y);
+        trails[i].setAttribute('opacity', isClosed ? String(0.08 + 0.18 * (1 - i / trails.length)) : '0');
+      }
+
+      for (let i = 0; i < dots.length; i++) {
+        const offset = (i / dotCount) * pathLength;
+        const distance = (phase - offset + pathLength) % pathLength;
+        const point = loopPath.getPointAtLength(distance);
+        const bob = isClosed ? Math.sin((distance / pathLength) * Math.PI * 2 + performance.now() * 0.008) * 0.8 : 0;
+        dots[i].setAttribute('cx', point.x);
+        dots[i].setAttribute('cy', point.y + bob);
+        dots[i].setAttribute('opacity', isClosed ? String(0.45 + 0.5 * normalized) : '0.06');
+        dots[i].setAttribute('r', String(isClosed ? 4.5 + normalized * 2.8 : 4));
+      }
+    }
+
+    function animate(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.04);
+      lastTime = now;
+      updateDots(dt);
+      requestAnimationFrame(animate);
+    }
+
+    function reset() {
+      voltageSlider.value = '9';
+      resistanceSlider.value = '20';
+      isClosed = true;
+      phase = 0;
+      updateUI();
+    }
+
+    voltageSlider.addEventListener('input', updateUI);
+    resistanceSlider.addEventListener('input', updateUI);
+    toggleSwitchBtn.addEventListener('click', () => {
+      isClosed = !isClosed;
+      updateUI();
+    });
+    resetBtn.addEventListener('click', reset);
+
+    placeArrow();
+    updateUI();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
